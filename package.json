@@ -2,5 +2,13 @@
   "name": "fantacalcio-ws",
   "version": "1.0.0",
   "main": "fantacalcio.js",
-  "description": "library to recover fantasy data from the 'Gazzetta dello sport'"
+  "description": "library to recover fantasy data from the 'Gazzetta dello sport'",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "http": "0.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/savez/Node-fantacalcio/"
+  }
 }
