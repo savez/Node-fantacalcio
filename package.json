@@ -4,6 +4,7 @@
   "main": "fantacalcio.js",
   "description": "library to recover fantasy data from the 'Gazzetta dello sport'",
   "dependencies": {
+    "async": "^2.5.0",
     "cheerio": "^1.0.0-rc.2",
     "http": "0.0.0"
   },
