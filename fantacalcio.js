@@ -59,22 +59,6 @@ function buildObj(html){
             foo.modulo = $('div.'+element+' div.matchFieldInner div.'+elem+'Module span.modulo').text();
 
             // Giocatori
-            /*
-            <ul class="team-players">
-          <li><span class="team-player">MIRANTE</span><span class="numero"><span>83</span></span></li>
-	<li><span class="team-player">MBAYE</span><span class="numero"><span>15</span></span></li>
-	<li><span class="team-player">GONZALEZ</span><span class="numero"><span>3</span></span></li>
-	<li><span class="team-player">HELANDER</span><span class="numero"><span>18</span></span></li>
-	<li><span class="team-player">MASINA</span><span class="numero"><span>25</span></span></li>
-	<li><span class="team-player">DONSAH</span><span class="numero"><span>77</span></span></li>
-	<li><span class="team-player">PULGAR</span><span class="numero"><span>5</span></span></li>
-	<li><span class="team-player">TAIDER</span><span class="numero"><span>8</span></span></li>
-	<li><span class="team-player">VERDI</span><span class="numero"><span>9</span></span></li>
-	<li><span class="team-player">PALACIO</span><span class="numero"><span>24</span></span></li>
-	<li><span class="team-player">DI FRANCESCO</span><span class="numero"><span>14</span></span></li>
-
-        </ul>
-             */
             let giocatori = null;
             if(index2 <= 0)
                 giocatori = $('div.'+element+' div.matchFieldInner ul.team-players-container li').first().html();
