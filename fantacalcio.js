@@ -61,9 +61,9 @@ function buildObj(html){
             // Giocatori
             let giocatori = null;
             if(index2 <= 0)
-                giocatori = $('div.'+element+' div.matchFieldInner ul.team-players-container li').first().html();
+                giocatori = $('div.'+element+' div.matchFieldInner ul.team-players-container li.team-players-inner').first().html();
             else
-                giocatori = $('div.'+element+' div.matchFieldInner ul.team-players-container li').last().html();
+                giocatori = $('div.'+element+' div.matchFieldInner ul.team-players-container li.team-players-inner').last().html();
 
             const $giocatori = cheerio.load(giocatori);
             let fooCalciatori = [];
