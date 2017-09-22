@@ -20,6 +20,17 @@ function buildObjFormazioni(){
         partita: null
     };
 };
+function buildDatiG(){
+    return {
+        nome: null,
+        squadra: null,
+        numero: null,
+        ruolo: null,
+        media_voto: null,
+        media_magic_voto: null,
+        url_detail: null
+    };
+};
 
 function getData(options,cb){
     async.waterfall(
@@ -35,7 +46,40 @@ function getData(options,cb){
                         console.error(e.message);
                     });
             },
+            (pg,callback) => {
+                response = http.get({
+                    host: 'www.gazzetta.it',
+                    port: 80,
+                    path:'/calcio/fantanews/statistiche/serie-a-2017-18/',
+                    headers: {
+                        'Content-Type': 'text/html'
+                    }
+                }, (response) => {
+                    let rawData = '';
+                    let giocatoriObj = [];
+                    response.setEncoding('utf8');
+                    response.on('data', (chunk) => { rawData += chunk; });
+                    response.on('end', () => {
+                        const $ = cheerio.load(rawData);
+                        $('table.playerStats tbody tr').each((i,v) => {
+                            let bar = buildDatiG();
+                            const $item = cheerio.load(v);
 
+                            bar.nome = $item('td.field-giocatore a').text();
+                            bar.url_detail = $item('td.field-giocatore a').attr('href');
+                            bar.ruolo = $item('td.field-ruolo').text();
+                            bar.media_magic_voto = $item('td.field-mm').text();
+                            bar.media_voto = $item('td.field-mv').text();
+                            bar.squadra = $item('td.field-sqd span.hidden-team-name').text();
+                            giocatoriObj.push(bar);
+                        });
+                        callback(null,{g:giocatoriObj,pg:pg})
+                    });
+                })
+                .on('error', (e) => {
+                    console.error(e.message);
+                });
+            },
             (rawData,callback) => {
                 callback(null,buildObj(rawData));
             }
@@ -45,7 +89,8 @@ function getData(options,cb){
 function buildObj(html){
     let formazioni = [];
     const listClass = ['home','away'];  // Nomi delle classi che identificano squadra in casa e squadra ospite
-    const $ = cheerio.load(html);
+    const $ = cheerio.load(html.pg);
+    let arrayGiocatori = html.g;
     $('.matchFieldContainer').each((index,val) => {
         formazioni[index] = buildObjFormazioni();
         let classi = val.attribs.class;
@@ -67,8 +112,25 @@ function buildObj(html){
 
             const $giocatori = cheerio.load(giocatori);
             let fooCalciatori = [];
-            $giocatori('span.team-player').filter(function(k,v){
-                fooCalciatori.push($(this).text());
+            $giocatori('ul.team-players li').filter((k,v) => {
+                const $item = cheerio.load(v);
+                nomeG = $item('span.team-player').text();
+                datiG = buildDatiG();
+                arrayGiocatori.forEach((v,i) => {
+                    let foo = v.nome;
+                    foo = foo.toLowerCase();
+                    if(foo.indexOf(nomeG.toLowerCase()) != -1){
+                        datiG = v;
+                    }
+                });
+                // Popolo oggetto
+                fooCalciatori.push({
+                    numero: $item('span.numero').text(),
+                    ruolo: datiG.ruolo,
+                    nome: nomeG,
+                    media_voto: datiG.media_voto,
+                    media_magic_voto: datiG.media_magic_voto
+                });
             });
             foo.giocatori = fooCalciatori;
             formazioni[index][elem] = foo;
@@ -81,3 +143,6 @@ function buildObj(html){
 module.exports.getData = (options,cb) => {
     return new getData(options,cb);
 }
+
+
+
