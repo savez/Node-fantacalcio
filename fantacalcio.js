@@ -11,7 +11,6 @@ function buildObjSquadra(){
         allenatore: null
     };
 };
-
 function buildObjFormazioni(){
     return {
         home: null,
@@ -28,7 +27,12 @@ function buildDatiG(){
         ruolo: null,
         media_voto: null,
         media_magic_voto: null,
-        url_detail: null
+        url_detail: null,
+        goal: null,
+        assist: null,
+        ammonizioni: null,
+        espulsioni: null,
+        partite_giocate: null
     };
 };
 
@@ -71,6 +75,11 @@ function getData(options,cb){
                             bar.media_magic_voto = $item('td.field-mm').text();
                             bar.media_voto = $item('td.field-mv').text();
                             bar.squadra = $item('td.field-sqd span.hidden-team-name').text();
+                            bar.assist = $item('td.field-a').text();
+                            bar.ammonizioni = $item('td.field-am').text();
+                            bar.espulsioni = $item('td.field-es').text();
+                            bar.goal = $item('td.field-g').text();
+                            bar.partite_giocate = $item('td.field-pg').text();
                             giocatoriObj.push(bar);
                         });
                         callback(null,{g:giocatoriObj,pg:pg})
@@ -124,13 +133,8 @@ function buildObj(html){
                     }
                 });
                 // Popolo oggetto
-                fooCalciatori.push({
-                    numero: $item('span.numero').text(),
-                    ruolo: datiG.ruolo,
-                    nome: nomeG,
-                    media_voto: datiG.media_voto,
-                    media_magic_voto: datiG.media_magic_voto
-                });
+                datiG.numero = $item('span.numero').text();
+                fooCalciatori.push(datiG);
             });
             foo.giocatori = fooCalciatori;
             formazioni[index][elem] = foo;
@@ -143,6 +147,7 @@ function buildObj(html){
 module.exports.getData = (options,cb) => {
     return new getData(options,cb);
 }
+
 
 
 
