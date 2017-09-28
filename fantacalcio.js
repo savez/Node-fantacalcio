@@ -130,9 +130,6 @@ function buildObj(html){
                 arrayGiocatori.forEach((v,i) => {
                     let baz = v['nome'].toLowerCase().split(' '); // NOME preso dalle quotazioni
                     let foo = baz[0].replace("'",'');
-
-                    console.log(foo+' - '+ngByFormazione);
-
                     if(foo.indexOf(ngByFormazione) != -1 || v['nome'].toLowerCase().indexOf(ngByFormazione) != -1 || ngByFormazione.indexOf(foo) != -1){
                         datiG = v;
                     }
