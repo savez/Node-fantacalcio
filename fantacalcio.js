@@ -8,7 +8,8 @@ function buildObjSquadra(){
         giocatori: [],
         logo: null,
         modulo: null,
-        allenatore: null
+        allenatore: null,
+        details: null
     };
 };
 function buildObjFormazioni(){
@@ -111,6 +112,7 @@ function buildObj(html){
             foo.allenatore = $('div.'+element+' div.matchFieldInner div.'+elem+'Module span.mister').text();
             foo.nome = $('div.'+element+' div.'+elem+'Team span.teamName a').text();
             foo.modulo = $('div.'+element+' div.matchFieldInner div.'+elem+'Module span.modulo').text();
+            foo.details = $('div.'+element+' div.matchDetails div.'+elem+'Details').html();
 
             // Giocatori
             let giocatori = null;
@@ -123,12 +125,15 @@ function buildObj(html){
             let fooCalciatori = [];
             $giocatori('ul.team-players li').filter((k,v) => {
                 const $item = cheerio.load(v);
-                nomeG = $item('span.team-player').text();
+                ngByFormazione = $item('span.team-player').text().toLowerCase().replace("'",'');
                 datiG = buildDatiG();
                 arrayGiocatori.forEach((v,i) => {
-                    let foo = v.nome;
-                    foo = foo.toLowerCase();
-                    if(foo.indexOf(nomeG.toLowerCase()) != -1){
+                    let baz = v['nome'].toLowerCase().split(' '); // NOME preso dalle quotazioni
+                    let foo = baz[0].replace("'",'');
+
+                    console.log(foo+' - '+ngByFormazione);
+
+                    if(foo.indexOf(ngByFormazione) != -1 || v['nome'].toLowerCase().indexOf(ngByFormazione) != -1 || ngByFormazione.indexOf(foo) != -1){
                         datiG = v;
                     }
                 });
