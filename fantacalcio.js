@@ -38,6 +38,17 @@ function buildDatiG(){
 };
 
 function getData(options,cb){
+    if(Object.keys(options).length === 0 && options.constructor === Object){
+        options = {
+            host: 'www.gazzetta.it',
+            port: 80,
+            path:'/Calcio/prob_form/',
+            headers: {
+                'Content-Type': 'text/html'
+            }
+        };
+    }
+
     async.waterfall(
         [
             (callback) => {
