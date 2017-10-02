@@ -2,6 +2,7 @@ var cheerio = require('cheerio');
 var http = require('http');
 var async = require('async');
 
+// Oggetti per JSON
 function buildObjSquadra(){
     return {
         nome: null,
@@ -37,22 +38,24 @@ function buildDatiG(){
     };
 };
 
-function getData(options,cb){
-    if(Object.keys(options).length === 0 && options.constructor === Object){
-        options = {
-            host: 'www.gazzetta.it',
-            port: 80,
-            path:'/Calcio/prob_form/',
-            headers: {
-                'Content-Type': 'text/html'
-            }
-        };
-    }
-
+/**
+ * Recupero dati per la formazione
+ * @param options
+ * @param cb
+ */
+function getFormazioni(cb){
     async.waterfall(
         [
+            // Recupero HTML possibili formazioni
             (callback) => {
-                response = http.get(options, (response) => {
+                response = http.get({
+                    host: 'www.gazzetta.it',
+                    port: 80,
+                    path:'/Calcio/prob_form/',
+                    headers: {
+                        'Content-Type': 'text/html'
+                    }
+                }, (response) => {
                     let rawData = '';
                     response.setEncoding('utf8');
                     response.on('data', (chunk) => { rawData += chunk; });
@@ -62,7 +65,9 @@ function getData(options,cb){
                         console.error(e.message);
                     });
             },
+            // Recupero HTML elenco giocatori
             (pg,callback) => {
+                let rawData = '';
                 response = http.get({
                     host: 'www.gazzetta.it',
                     port: 80,
@@ -76,37 +81,95 @@ function getData(options,cb){
                     response.setEncoding('utf8');
                     response.on('data', (chunk) => { rawData += chunk; });
                     response.on('end', () => {
-                        const $ = cheerio.load(rawData);
-                        $('table.playerStats tbody tr').each((i,v) => {
-                            let bar = buildDatiG();
-                            const $item = cheerio.load(v);
-
-                            bar.nome = $item('td.field-giocatore a').text();
-                            bar.url_detail = $item('td.field-giocatore a').attr('href');
-                            bar.ruolo = $item('td.field-ruolo').text();
-                            bar.media_magic_voto = $item('td.field-mm').text();
-                            bar.media_voto = $item('td.field-mv').text();
-                            bar.squadra = $item('td.field-sqd span.hidden-team-name').text();
-                            bar.assist = $item('td.field-a').text();
-                            bar.ammonizioni = $item('td.field-am').text();
-                            bar.espulsioni = $item('td.field-es').text();
-                            bar.goal = $item('td.field-g').text();
-                            bar.partite_giocate = $item('td.field-pg').text();
-                            giocatoriObj.push(bar);
-                        });
-                        callback(null,{g:giocatoriObj,pg:pg})
+                        callback(null,{pg:pg,rawData:rawData});
                     });
                 })
                 .on('error', (e) => {
                     console.error(e.message);
                 });
             },
+            // Costruzione OBj elenco giocatori e passaggio dati per la build del JSON
+            (obj,callback) => {
+                callback(null,{g:buildElencoGiocatori(obj.rawData),pg:obj.pg});
+            },
+            // Passo tutti i dati alla callback per la costruzione del JSON
             (rawData,callback) => {
                 callback(null,buildObj(rawData));
             }
         ],cb);
 }
 
+/**
+ * Recupero dati per elenco giocatori
+ * @param html
+ * @returns {Array}
+ */
+
+function elencoGiocatori(cb){
+    async.waterfall(
+        [
+            // Recupero HTML elenco giocatori
+            (callback) => {
+                response = http.get({
+                    host: 'www.gazzetta.it',
+                    port: 80,
+                    path:'/calcio/fantanews/statistiche/serie-a-2017-18/',
+                    headers: {
+                        'Content-Type': 'text/html'
+                    }
+                }, (response) => {
+                    let rawData = '';
+                    response.setEncoding('utf8');
+                    response.on('data', (chunk) => { rawData += chunk; });
+                    response.on('end', () => {
+                        callback(null,rawData);
+                    });
+                })
+                .on('error', (e) => {
+                    console.error(e.message);
+                });
+            },
+            // Costruzione OBj elenco giocatori e passaggio dati per la build del JSON
+            (html,callback) => {
+                callback(null,buildElencoGiocatori(html));
+            },
+        ],cb);
+}
+
+/**
+ * Funzione per la costruzione dell'oggetto elencoCalciatori
+ * @param rawData
+ * @returns {Array}
+ */
+function buildElencoGiocatori(rawData){
+    let giocatoriObj = [];
+    const $ = cheerio.load(rawData);
+    $('table.playerStats tbody tr').each((i,v) => {
+        let giocatore = buildDatiG();
+        const $item = cheerio.load(v);
+
+        giocatore.nome = $item('td.field-giocatore a').text();
+        giocatore.url_detail = $item('td.field-giocatore a').attr('href');
+        giocatore.ruolo = $item('td.field-ruolo').text();
+        giocatore.media_magic_voto = $item('td.field-mm').text();
+        giocatore.media_voto = $item('td.field-mv').text();
+        giocatore.squadra = $item('td.field-sqd span.hidden-team-name').text();
+        giocatore.assist = $item('td.field-a').text();
+        giocatore.ammonizioni = $item('td.field-am').text();
+        giocatore.espulsioni = $item('td.field-es').text();
+        giocatore.goal = $item('td.field-g').text();
+        giocatore.partite_giocate = $item('td.field-pg').text();
+
+        giocatoriObj.push(giocatore);
+    });
+    return giocatoriObj;
+}
+
+/**
+ * Funzione per la costruzione dle JSON per la formazione
+ * @param html
+ * @returns {Array}
+ */
 function buildObj(html){
     let formazioni = [];
     const listClass = ['home','away'];  // Nomi delle classi che identificano squadra in casa e squadra ospite
@@ -119,7 +182,7 @@ function buildObj(html){
         formazioni[index].update = $('div.'+element+' span.lastUpdate').text();
         formazioni[index].partita = $('div.'+element+' div.matchFieldInner div.matchDateTime').text();
         listClass.forEach((elem,index2) => {
-            foo = buildObjSquadra();
+            let foo = buildObjSquadra();
             foo.allenatore = $('div.'+element+' div.matchFieldInner div.'+elem+'Module span.mister').text();
             foo.nome = $('div.'+element+' div.'+elem+'Team span.teamName a').text();
             foo.modulo = $('div.'+element+' div.matchFieldInner div.'+elem+'Module span.modulo').text();
@@ -136,13 +199,26 @@ function buildObj(html){
             let fooCalciatori = [];
             $giocatori('ul.team-players li').filter((k,v) => {
                 const $item = cheerio.load(v);
-                ngByFormazione = $item('span.team-player').text().toLowerCase().replace("'",'');
-                datiG = buildDatiG();
-                arrayGiocatori.forEach((v,i) => {
-                    let baz = v['nome'].toLowerCase().split(' '); // NOME preso dalle quotazioni
-                    let foo = baz[0].replace("'",'');
-                    if(foo.indexOf(ngByFormazione) != -1 || v['nome'].toLowerCase().indexOf(ngByFormazione) != -1 || ngByFormazione.indexOf(foo) != -1){
-                        datiG = v;
+                let ngByFormazione = $item('span.team-player').text().toLowerCase().replace("'",'');
+                let datiG = buildDatiG();
+                arrayGiocatori.forEach((itemG,i) => {
+                    if(foo.nome == itemG['squadra']){
+                        if(ngByFormazione.indexOf(' ') != -1){
+                            // caso: Douglas Costa => Costa D. ; Borja Valero => Valero B. ;  Alex Sandro => Alex Sandro
+                            let bar = ngByFormazione.toLowerCase().split(' ');
+                            if(itemG['nome'].toLowerCase().indexOf(bar[0]) != -1 ||
+                                itemG['nome'].toLowerCase().indexOf(bar[1]) != -1){
+
+                                datiG = itemG;
+                            }
+                        }else{
+                            // caso: Icardi ; Costa => Costa A.
+                            if(itemG['nome'].toLowerCase().indexOf(ngByFormazione.toLowerCase()) != -1 ||
+                                ngByFormazione.toLowerCase().indexOf(itemG['nome']) != -1){
+
+                                datiG = itemG;
+                            }
+                        }
                     }
                 });
                 // Popolo oggetto
@@ -157,10 +233,13 @@ function buildObj(html){
 }
 
 // Esponi servizio
-module.exports.getData = (options,cb) => {
-    return new getData(options,cb);
+module.exports.getData = (cb) => {
+    return new getFormazioni(cb);
 }
 
+module.exports.getGiocatori = (cb) => {
+    return new elencoGiocatori(cb);
+}
 
 
 
