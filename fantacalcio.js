@@ -101,7 +101,7 @@ function getFormazioni(cb){
 
 /**
  * Recupero dati per elenco giocatori
- * @param html
+ * @param cb
  * @returns {Array}
  */
 
@@ -188,6 +188,9 @@ function buildObj(html){
             foo.modulo = $('div.'+element+' div.matchFieldInner div.'+elem+'Module span.modulo').text();
             foo.details = $('div.'+element+' div.matchDetails div.'+elem+'Details').html();
 
+            let nome_squadra = foo.nome;
+            nome_squadra = nome_squadra.toLowerCase();
+
             // Giocatori
             let giocatori = null;
             if(index2 <= 0)
@@ -200,26 +203,12 @@ function buildObj(html){
             $giocatori('ul.team-players li').filter((k,v) => {
                 const $item = cheerio.load(v);
                 let ngByFormazione = $item('span.team-player').text().toLowerCase().replace("'",'');
+                ngByFormazione = ngByFormazione.trim();
                 let datiG = buildDatiG();
                 arrayGiocatori.forEach((itemG,i) => {
-                    if(foo.nome == itemG['squadra']){
-                        if(ngByFormazione.indexOf(' ') != -1){
-                            // caso: Douglas Costa => Costa D. ; Borja Valero => Valero B. ;  Alex Sandro => Alex Sandro
-                            let bar = ngByFormazione.toLowerCase().split(' ');
-                            if(itemG['nome'].toLowerCase().indexOf(bar[0]) != -1 ||
-                                itemG['nome'].toLowerCase().indexOf(bar[1]) != -1){
-
-                                datiG = itemG;
-                            }
-                        }else{
-                            // caso: Icardi ; Costa => Costa A.
-                            if(itemG['nome'].toLowerCase().indexOf(ngByFormazione.toLowerCase()) != -1 ||
-                                ngByFormazione.toLowerCase().indexOf(itemG['nome']) != -1){
-
-                                datiG = itemG;
-                            }
-                        }
-                    }
+                    let returnMapping = mappingNomegiocatore(nome_squadra,itemG,ngByFormazione);
+                    if(returnMapping !== null)
+                        datiG = returnMapping;
                 });
                 // Popolo oggetto
                 datiG.numero = $item('span.numero').text();
@@ -232,6 +221,45 @@ function buildObj(html){
     return formazioni;
 }
 
+function mappingNomegiocatore(nome_squadra,itemG,ngByFormazione){
+    if(nome_squadra == itemG['squadra'].toLowerCase()){
+        if(ngByFormazione.indexOf(' ') != -1){
+            // caso: Douglas Costa => Costa D. ; Borja Valero => Valero B. ;  Alex Sandro => Alex Sandro
+            let bar = ngByFormazione.toLowerCase().split(' ');
+            if(bar[0] == 'de' || bar[0] == 'di'){
+                if(itemG['nome'].toLowerCase().indexOf(ngByFormazione.toLowerCase()) != -1 ||
+                    ngByFormazione.toLowerCase().indexOf(itemG['nome']) != -1){
+                    return itemG;
+                }
+            }else{
+                if(itemG['nome'].toLowerCase().indexOf(bar[0]) != -1 ||
+                    itemG['nome'].toLowerCase().indexOf(bar[1]) != -1){
+                    console.log('ng_formazione: '+ngByFormazione+ ' - itemG: '+itemG['nome']+ ' INSERITO 1');
+                    return itemG;
+                }
+            }
+        }else{
+            // caso: Icardi ; Costa => Costa A.
+            if(itemG['nome'].toLowerCase().indexOf(ngByFormazione.toLowerCase()) != -1 ||
+                ngByFormazione.toLowerCase().indexOf(itemG['nome']) != -1){
+                return itemG;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Funzione per recupero risultati delle varie giornate
+ * @param cb
+ * @returns {Array}
+ */
+function getRisultatiGiornate(cb){
+    // http://www.gazzetta.it/speciali/risultati_classifiche/2018/calcio/seriea/calendario.shtml?data=7a_giornata_20170930
+
+
+}
+
 // Esponi servizio
 module.exports.getData = (cb) => {
     return new getFormazioni(cb);
@@ -239,6 +267,10 @@ module.exports.getData = (cb) => {
 
 module.exports.getGiocatori = (cb) => {
     return new elencoGiocatori(cb);
+}
+
+module.exports.getRisultatiGiornate = (cb) => {
+    return new getRisultatiGiornate(cb);
 }
 
 
