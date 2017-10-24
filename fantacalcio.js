@@ -205,10 +205,15 @@ function buildObj(html){
                 let ngByFormazione = $item('span.team-player').text().toLowerCase().replace("'",'');
                 ngByFormazione = ngByFormazione.trim();
                 let datiG = buildDatiG();
+                let boolNGMapping = false;
                 arrayGiocatori.forEach((itemG,i) => {
-                    let returnMapping = mappingNomegiocatore(nome_squadra,itemG,ngByFormazione);
-                    if(returnMapping !== null)
-                        datiG = returnMapping;
+                    if(!boolNGMapping){
+                        let returnMapping = mappingNomegiocatore(nome_squadra,itemG,ngByFormazione);
+                        if(returnMapping !== null) {
+                            datiG = returnMapping;
+                            boolNGMapping = true;
+                        }
+                    }
                 });
                 // Popolo oggetto
                 datiG.numero = $item('span.numero').text();
@@ -234,7 +239,6 @@ function mappingNomegiocatore(nome_squadra,itemG,ngByFormazione){
             }else{
                 if(itemG['nome'].toLowerCase().indexOf(bar[0]) != -1 ||
                     itemG['nome'].toLowerCase().indexOf(bar[1]) != -1){
-                    console.log('ng_formazione: '+ngByFormazione+ ' - itemG: '+itemG['nome']+ ' INSERITO 1');
                     return itemG;
                 }
             }
