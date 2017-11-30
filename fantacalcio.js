@@ -1,6 +1,8 @@
 var cheerio = require('cheerio');
 var http = require('http');
 var async = require('async');
+var stringSimilarity = require('string-similarity');
+
 
 // Oggetti per JSON
 function buildObjSquadra(){
@@ -175,6 +177,17 @@ function buildObj(html){
     const listClass = ['home','away'];  // Nomi delle classi che identificano squadra in casa e squadra ospite
     const $ = cheerio.load(html.pg);
     let arrayGiocatori = html.g;
+
+    let giocatoriArray = new Array();
+    arrayGiocatori.forEach((itemG,i) => {
+        if(giocatoriArray.hasOwnProperty(itemG['squadra'])){
+            giocatoriArray[itemG['squadra']].push(itemG['nome']);
+        }else{
+            giocatoriArray[itemG['squadra']] = [];
+            giocatoriArray[itemG['squadra']].push(itemG['nome']);
+        }
+    });
+
     $('.matchFieldContainer').each((index,val) => {
         formazioni[index] = buildObjFormazioni();
         let classi = val.attribs.class;
@@ -206,15 +219,16 @@ function buildObj(html){
                 ngByFormazione = ngByFormazione.trim();
                 let datiG = buildDatiG();
                 let boolNGMapping = false;
-                arrayGiocatori.forEach((itemG,i) => {
-                    if(!boolNGMapping){
-                        let returnMapping = mappingNomegiocatore(nome_squadra,itemG,ngByFormazione);
-                        if(returnMapping !== null) {
-                            datiG = returnMapping;
-                            boolNGMapping = true;
-                        }
+
+
+                // Controllo similarità per cercare di mappare i nomi giocatori
+                var similarity = stringSimilarity.findBestMatch(ngByFormazione,giocatoriArray[nome_squadra]);
+                arrayGiocatori.forEach((item,i) => {
+                    if(similarity.bestMatch.target == item['nome']){
+                        datiG = item;
                     }
                 });
+
                 // Popolo oggetto
                 datiG.numero = $item('span.numero').text();
                 fooCalciatori.push(datiG);
@@ -224,33 +238,6 @@ function buildObj(html){
         });
     });
     return formazioni;
-}
-
-function mappingNomegiocatore(nome_squadra,itemG,ngByFormazione){
-    if(nome_squadra == itemG['squadra'].toLowerCase()){
-        if(ngByFormazione.indexOf(' ') != -1){
-            // caso: Douglas Costa => Costa D. ; Borja Valero => Valero B. ;  Alex Sandro => Alex Sandro
-            let bar = ngByFormazione.toLowerCase().split(' ');
-            if(bar[0] == 'de' || bar[0] == 'di'){
-                if(itemG['nome'].toLowerCase().indexOf(ngByFormazione.toLowerCase()) != -1 ||
-                    ngByFormazione.toLowerCase().indexOf(itemG['nome']) != -1){
-                    return itemG;
-                }
-            }else{
-                if(itemG['nome'].toLowerCase().indexOf(bar[0]) != -1 ||
-                    itemG['nome'].toLowerCase().indexOf(bar[1]) != -1){
-                    return itemG;
-                }
-            }
-        }else{
-            // caso: Icardi ; Costa => Costa A.
-            if(itemG['nome'].toLowerCase().indexOf(ngByFormazione.toLowerCase()) != -1 ||
-                ngByFormazione.toLowerCase().indexOf(itemG['nome']) != -1){
-                return itemG;
-            }
-        }
-    }
-    return null;
 }
 
 /**
