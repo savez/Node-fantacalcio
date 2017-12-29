@@ -39,6 +39,28 @@ function buildDatiG(){
         partite_giocate: null
     };
 };
+function buildObjGiornata(){
+    return{
+        numero: null,
+        data: null,
+        ora: null,
+        risultato:[]
+    }
+}
+
+class RisGiornata{
+    costructor(data,ora,sq1,sq2,r1,r2){
+        this.data = data;
+        this.ora = ora;
+        this.risultato = [
+            sq1 => r1,
+            sq2 => r2
+        ];
+    }
+    toString(){
+        return ;
+    }
+}
 
 /**
  * Recupero dati per la formazione
@@ -180,11 +202,16 @@ function buildObj(html){
 
     let giocatoriArray = new Array();
     arrayGiocatori.forEach((itemG,i) => {
-        if(giocatoriArray.hasOwnProperty(itemG['squadra'])){
-            giocatoriArray[itemG['squadra']].push(itemG['nome']);
+        // Correggo nome del verona
+        let fooNomeSq = itemG['squadra'];
+        if(fooNomeSq.indexOf('verona') != -1){
+            fooNomeSq = 'verona';
+        }
+        if(giocatoriArray.hasOwnProperty(fooNomeSq)){
+            giocatoriArray[fooNomeSq].push(itemG['nome']);
         }else{
-            giocatoriArray[itemG['squadra']] = [];
-            giocatoriArray[itemG['squadra']].push(itemG['nome']);
+            giocatoriArray[fooNomeSq] = [];
+            giocatoriArray[fooNomeSq].push(itemG['nome']);
         }
     });
 
@@ -246,20 +273,118 @@ function buildObj(html){
  * @returns {Array}
  */
 function getRisultatiGiornate(cb){
-    // http://www.gazzetta.it/speciali/risultati_classifiche/2018/calcio/seriea/calendario.shtml?data=7a_giornata_20170930
+    // http://www.gazzetta.it/speciali/risultati_classifiche/2018/calcio/seriea
+    /**
+     * 1- recupero menu per link alle varie pagine
+     * 2- richiamo le varie pagine a ciclo e recupero i vari dati
+     * 3- strutturo json di ritorno
+     */
+    async.waterfall(
+        [
+            // Recupero HTML possibili formazioni
+            (callback) => {
+                // Recupero lista menu per successive iterazioni
+                response = http.get({
+                    host: 'www.gazzetta.it',
+                    port: 80,
+                    path:'/speciali/risultati_classifiche/2018/calcio/seriea/',
+                    headers: {
+                        'Content-Type': 'text/html'
+                    }
+                },(response) => {
+                    let rawData = '';
+                    response.setEncoding('utf8');
+                    response.on('data', (chunk) => { rawData += chunk; });
+                    response.on('end', () => { callback(null,rawData); });
+                })
+                .on('error', (e) => {
+                    console.error(e.message);
+                });
+            },
+            // Creo array menu
+            (dpg,callback) => {
+                var menu = [];
+                const $ = cheerio.load(dpg);
+                $('ul#calendar_list li').filter((i,v) => {
+                    const $item = cheerio.load(v);
+                    menu.push($item('a').attr('rel'));
+                });
+                callback(null,menu);
+            },
+            // Itero menu per recuperare tabella risultati e creare oggetto
+            (menu,callback) => {
+                giornateArray = new Array();
 
+                // Creo funzioni anoniime con le varie chiamate da fare.
+                var calls = [];
+                menu.forEach((item,i) => {
+                    calls.push(function(cb) {
+                        var itemRisultato = {};
+                        response = http.get({
+                            host: 'www.gazzetta.it',
+                            port: 80,
+                            path:'/speciali/risultati_classifiche/2018/calcio/seriea/calendario.shtml?data='+item,
+                            headers: {'Content-Type': 'text/html'}
+                        }, (response) => {
+                            let rawData = '';
+                            response.setEncoding('utf8');
+                            response.on('data', (chunk) => { rawData += chunk; });
+                            response.on('end', () => {
+                                let foo = buildGiornata(rawData);
+                                giornateArray.push(foo.ris);
+                                cb();
+                            });
+                        })
+                        .on('error', (e) => {
+                            console.error(e.message);
+                        });
+                    });
+                });
+                async.parallel(calls,(err,results) => {
+                    callback(null,giornateArray);
+                });
+            }
+        ],cb);
+}
 
+/**
+ * Funzione che costruisce la giornata (array di risultati)
+ * @returns {Array}
+ */
+function buildGiornata(rawData){
+    let giornata = new Array();
+    const $ = cheerio.load(rawData);
+    var numeroGiornata = $('div#block_serie_a h2 strong.range_phase').text();
+    $('div.CalendarBlock table.results tbody tr').filter((i,v) => {
+        const $item = cheerio.load(v);
+        var risultato = new buildObjGiornata();
+        risultato.data = $item('td.col1 span.date').text();
+        risultato.ora = $item('td.col2 span.time').text();
+        risultato.numero = numeroGiornata.replace(/\D/g,'');
+        var match = $item('td.col5 a').text();
+        var match_array = match.split('-');
+        match_array.forEach((elem,i) => {
+            var col = [3,7];
+            risultato.risultato.push({
+                nome: $item('td.col'+col[i]+' a').text().replace('\n',''),
+                goal: elem,
+            });
+        });
+        giornata.push(risultato);
+    });
+    return {
+        ris: giornata,
+        numero: numeroGiornata.replace(/\D/g,'')
+    };
 }
 
 // Esponi servizio
 module.exports.getData = (cb) => {
     return new getFormazioni(cb);
 }
-
 module.exports.getGiocatori = (cb) => {
     return new elencoGiocatori(cb);
 }
-
 module.exports.getRisultatiGiornate = (cb) => {
     return new getRisultatiGiornate(cb);
 }
