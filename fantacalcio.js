@@ -1,5 +1,5 @@
 var cheerio = require('cheerio');
-var http = require('http');
+var http = require('https');
 var async = require('async');
 var stringSimilarity = require('string-similarity');
 
@@ -74,7 +74,7 @@ function getFormazioni(cb){
             (callback) => {
                 response = http.get({
                     host: 'www.gazzetta.it',
-                    port: 80,
+                    port: 443,
                     path:'/Calcio/prob_form/',
                     headers: {
                         'Content-Type': 'text/html'
@@ -94,7 +94,7 @@ function getFormazioni(cb){
                 let rawData = '';
                 response = http.get({
                     host: 'www.gazzetta.it',
-                    port: 80,
+                    port: 443,
                     path:'/calcio/fantanews/statistiche/serie-a-2017-18/',
                     headers: {
                         'Content-Type': 'text/html'
@@ -136,7 +136,7 @@ function elencoGiocatori(cb){
             (callback) => {
                 response = http.get({
                     host: 'www.gazzetta.it',
-                    port: 80,
+                    port: 443,
                     path:'/calcio/fantanews/statistiche/serie-a-2017-18/',
                     headers: {
                         'Content-Type': 'text/html'
@@ -286,7 +286,7 @@ function getRisultatiGiornate(cb){
                 // Recupero lista menu per successive iterazioni
                 response = http.get({
                     host: 'www.gazzetta.it',
-                    port: 80,
+                    port: 443,
                     path:'/speciali/risultati_classifiche/2018/calcio/seriea/',
                     headers: {
                         'Content-Type': 'text/html'
@@ -322,7 +322,7 @@ function getRisultatiGiornate(cb){
                         var itemRisultato = {};
                         response = http.get({
                             host: 'www.gazzetta.it',
-                            port: 80,
+                            port: 443,
                             path:'/speciali/risultati_classifiche/2018/calcio/seriea/calendario.shtml?data='+item,
                             headers: {'Content-Type': 'text/html'}
                         }, (response) => {
