@@ -3,8 +3,13 @@ var http = require('https');
 var async = require('async');
 var stringSimilarity = require('string-similarity');
 
+// URL config
+var urlElencoGiovatori = '/calcio/fantanews/statistiche/serie-a-2018-19/';
+var urlProbabiliFormazini = '/Calcio/prob_form/';
+var urlRisultatiGiornate = '/speciali/risultati_classifiche/2019/calcio/seriea/';
 
-// Oggetti per JSON
+
+// Object for JSON
 function buildObjSquadra(){
     return {
         nome: null,
@@ -63,7 +68,7 @@ class RisGiornata{
 }
 
 /**
- * Recupero dati per la formazione
+ * Get data for the formation
  * @param options
  * @param cb
  */
@@ -75,7 +80,7 @@ function getFormazioni(cb){
                 response = http.get({
                     host: 'www.gazzetta.it',
                     port: 443,
-                    path:'/Calcio/prob_form/',
+                    path: urlProbabiliFormazini,
                     headers: {
                         'Content-Type': 'text/html'
                     }
@@ -95,7 +100,7 @@ function getFormazioni(cb){
                 response = http.get({
                     host: 'www.gazzetta.it',
                     port: 443,
-                    path:'/calcio/fantanews/statistiche/serie-a-2017-18/',
+                    path: urlElencoGiovatori,
                     headers: {
                         'Content-Type': 'text/html'
                     }
@@ -137,7 +142,7 @@ function elencoGiocatori(cb){
                 response = http.get({
                     host: 'www.gazzetta.it',
                     port: 443,
-                    path:'/calcio/fantanews/statistiche/serie-a-2017-18/',
+                    path: urlElencoGiovatori,
                     headers: {
                         'Content-Type': 'text/html'
                     }
@@ -190,7 +195,7 @@ function buildElencoGiocatori(rawData){
 }
 
 /**
- * Funzione per la costruzione dle JSON per la formazione
+ * Funzione per la costruzione del JSON per la formazione
  * @param html
  * @returns {Array}
  */
@@ -245,17 +250,17 @@ function buildObj(html){
                 let ngByFormazione = $item('span.team-player').text().toLowerCase().replace("'",'');
                 ngByFormazione = ngByFormazione.trim();
                 let datiG = buildDatiG();
-                let boolNGMapping = false;
-
+                //let boolNGMapping = false;
 
                 // Controllo similarità per cercare di mappare i nomi giocatori
-                var similarity = stringSimilarity.findBestMatch(ngByFormazione,giocatoriArray[nome_squadra]);
-                arrayGiocatori.forEach((item,i) => {
-                    if(similarity.bestMatch.target == item['nome']){
-                        datiG = item;
-                    }
-                });
-
+                if ((typeof ngByFormazione === 'string' || ngByFormazione instanceof String) && giocatoriArray[nome_squadra] instanceof Array){
+                    var similarity = stringSimilarity.findBestMatch(ngByFormazione,giocatoriArray[nome_squadra]);
+                    arrayGiocatori.forEach((item,i) => {
+                        if(similarity.bestMatch.target == item['nome']){
+                            datiG = item;
+                        }
+                    });
+                }
                 // Popolo oggetto
                 datiG.numero = $item('span.numero').text();
                 fooCalciatori.push(datiG);
@@ -287,7 +292,7 @@ function getRisultatiGiornate(cb){
                 response = http.get({
                     host: 'www.gazzetta.it',
                     port: 443,
-                    path:'/speciali/risultati_classifiche/2018/calcio/seriea/',
+                    path: urlRisultatiGiornate,
                     headers: {
                         'Content-Type': 'text/html'
                     }
@@ -348,7 +353,7 @@ function getRisultatiGiornate(cb){
 }
 
 /**
- * Funzione che costruisce la giornata (array di risultati)
+ * Function that build the day (return Array of result)
  * @returns {Array}
  */
 function buildGiornata(rawData){
