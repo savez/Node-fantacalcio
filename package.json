@@ -1,6 +1,6 @@
 {
   "name": "fantacalcio-ws",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "main": "fantacalcio.js",
   "description": "library to recover fantacalcio data from the 'Gazzetta dello sport'",
   "dependencies": {
